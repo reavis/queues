@@ -3,7 +3,7 @@ Backend for beanstalkd queue.
 
 This backend requires the beanstalkc library to be installed.
 """
-
+import logging
 from queues.backends.base import BaseQueue
 from queues import InvalidBackend, QueueException
 import os
@@ -31,10 +31,14 @@ class Queue(BaseQueue):
         self.backend = 'beanstalkd'
         self.name = name
         self._connection.use(name)
+        self._connection.watch(name)
+        self._connection.ignore('default')
 
     def read(self):
         try:
-            job = self._connection.reserve()
+            job = self._connection.reserve(timeout=0)
+            if job == None:
+                raise QueueException
             message = job.body
             job.delete()
             return message
